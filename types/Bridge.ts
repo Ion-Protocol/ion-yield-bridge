@@ -1,14 +1,14 @@
-import { BridgeKey } from '@/config/bridges'
-import { ChainKey } from '@/config/chains'
 import { TokenKey } from '@/config/token'
 import { UIDataObject } from './common'
 import { Contracts } from './Contracts'
+import { BridgeKey } from '@/config/chains'
 
 export interface Bridge {
   name: string
+  layerZeroChainSelector: number
   description: string
-  sourceChains: ChainKey[]
-  destinationChains: ChainKey[]
+  sourceBridges: BridgeKey[]
+  destinationBridges: BridgeKey[]
   contracts: Contracts
   sourceTokens: TokenKey[]
   destinationTokens: TokenKey[]

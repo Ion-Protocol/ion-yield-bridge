@@ -1,13 +1,12 @@
 import { TokenIcon } from '@/components/config/tokenIcons'
 import { TokenKey } from '@/config/token'
-import { Bridges } from '@/store/slices/bridges'
 import { Token } from '@/types/Token'
 import { ChevronDownIcon } from '@chakra-ui/icons'
 import { Button, Flex, Menu, MenuButton, MenuItem, MenuList, Text } from '@chakra-ui/react'
 
 interface TokenSelectProps {
   tokens: Token[]
-  selected: Token
+  selected: Token | null
   onChange: (tokenKey: TokenKey) => void
 }
 
@@ -27,7 +26,7 @@ function TokenSelect({ selected, tokens, onChange }: TokenSelectProps) {
         {/* Token Selector Button */}
         <Flex align="center" gap={2}>
           {selected && <TokenIcon fontSize="28px" tokenKey={selected.key} />}
-          <Text variant="xl">{selected.name}</Text>
+          <Text variant="xl">{selected?.name}</Text>
           <ChevronDownIcon />
         </Flex>
       </MenuButton>

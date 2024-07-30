@@ -1,6 +1,6 @@
-import { BridgeKey, bridgesConfig } from '@/config/bridges'
+import { BridgeKey } from '@/config/chains'
 import { RootState } from '@/store'
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { createSelector, createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 // Add fields to RouterQuery as needed
 export interface RouterQuery {
@@ -9,14 +9,14 @@ export interface RouterQuery {
 
 interface RouterState {
   path: string | null
-  query: RouterQuery
+  query: RouterQuery | null
+  loading: boolean
 }
 
 const initialState: RouterState = {
   path: null,
-  query: {
-    bridge: Object.keys(bridgesConfig)[0] as BridgeKey,
-  },
+  query: null,
+  loading: false,
 }
 
 const routerSlice = createSlice({
@@ -37,7 +37,15 @@ const routerSlice = createSlice({
 
 export const { setPath, clearPath, setQuery } = routerSlice.actions
 export const selectRouterPath = (state: RootState) => state.router.path
-export const selectRouterQuery = (state: RootState) => state.router.query
-export const selectBridgeKey = (state: RootState) => state.router.query.bridge
+
+export const selectRouterQuery = (state: RootState) => {
+  return state.router.query
+}
+
+export const selectBridgeKey = createSelector([selectRouterQuery], (routerQuery): BridgeKey | null => {
+  const bridgeKey = routerQuery?.bridge
+  if (!bridgeKey) return null
+  return bridgeKey
+})
 
 export const routerReducer = routerSlice.reducer

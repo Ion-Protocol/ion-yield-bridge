@@ -1,8 +1,8 @@
-import { BridgeKey, bridgesConfig } from '@/config/bridges'
 import { TokenKey, tokensConfig } from '@/config/token'
 import { RootState } from '@/store'
-import { selectFormattedTokenBalance } from '@/store/slices/balance'
+import { selectBalancesLoading, selectFormattedTokenBalance } from '@/store/slices/balance'
 import {
+  selectBridgeConfig,
   selectBridgeFrom,
   selectFromTokenKeyForBridge,
   selectInputError,
@@ -13,17 +13,19 @@ import { selectBridgeKey } from '@/store/slices/router'
 import { ConnectedProps, connect } from 'react-redux'
 
 const mapState = (state: RootState, ownProps: TokenFromOwnProps) => {
-  const bridgeKey = selectBridgeKey(state) as BridgeKey
-  const inputValue = selectBridgeFrom(state, bridgeKey)
-  const tokenKeys = bridgesConfig[bridgeKey].sourceTokens
+  const bridgeKey = selectBridgeKey(state)
+  const inputValue = selectBridgeFrom(state)
+  const bridgeConfig = selectBridgeConfig(state)
+  const tokenKeys = bridgeConfig?.sourceTokens || []
   const tokens = tokenKeys.map((key) => tokensConfig[key])
-  const selectedTokenKey = selectFromTokenKeyForBridge(state, bridgeKey) || tokenKeys[0]
+  const selectedTokenKey = selectFromTokenKeyForBridge(state) || tokenKeys[0] || null
   const selectedToken = tokensConfig[selectedTokenKey]
   const formattedTokenBalance = selectFormattedTokenBalance(selectedTokenKey)(state)
 
   return {
     inputValue,
     tokenBalance: formattedTokenBalance,
+    loadingTokenBalance: selectBalancesLoading(state),
     error: selectInputError(state),
     tokens,
     selectedToken,

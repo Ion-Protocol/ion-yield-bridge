@@ -1,30 +1,28 @@
-import { BridgeKey, bridgesConfig } from '@/config/bridges'
-import { ChainKey, chainsConfig } from '@/config/chains'
+import { ChainKey } from '@/config/chains'
 import { RootState } from '@/store'
 import {
-  setSourceChain,
+  selectDestinationBridge,
+  selectSourceBridge,
+  selectDestinationBridges,
+  selectSourceBridges,
   setDestinationChain,
-  selectBridgeSourceChain,
-  selectBridgeDestinationChain,
+  setSourceChain,
 } from '@/store/slices/bridges'
-import { selectBridgeKey } from '@/store/slices/router'
 import { ConnectedProps, connect } from 'react-redux'
 
 const mapState = (state: RootState, ownProps: ChainSelectOwnProps) => {
   const { role } = ownProps
-  const bridgeKey = selectBridgeKey(state) as BridgeKey
 
-  const bridge = bridgesConfig[bridgeKey]
-  const chainKeys = role === 'source' ? bridge.sourceChains : bridge.destinationChains
-  const chains = chainKeys.map((key) => ({ key, ...chainsConfig[key] })).filter((chain) => chain.key)
-  const selectChain = role === 'source' ? selectBridgeSourceChain : selectBridgeDestinationChain
-  const selected = selectChain(state) || ChainKey.ETHEREUM
-  const selectedChain = selected && chains.find((chain) => chain.key === selected)
+  const selectBridges = role === 'source' ? selectSourceBridges : selectDestinationBridges
+  const bridges = selectBridges(state)
+  const selectChain = role === 'source' ? selectSourceBridge : selectDestinationBridge
+  const selected = selectChain(state) || bridges[0]?.key || null
+  const selectedChain = selected && bridges.find((bridge) => bridge.key === selected)
 
   const placeholder = role === 'source' ? 'Source Chain' : 'Destination Chain'
 
   return {
-    chains,
+    chains: bridges,
     selected: selectedChain,
     placeholder,
   }

@@ -13,8 +13,9 @@ export const selectBalancesError = (state: RootState): string | null => state.ba
  * @param tokenKey - The key of the token.
  * @returns The balance value for the specified token key.
  */
-export const selectTokenBalance = (tokenKey: TokenKey) =>
+export const selectTokenBalance = (tokenKey: TokenKey | null) =>
   createSelector([selectBalances], (balances): string => {
+    if (!tokenKey) return '0'
     return balances[tokenKey]
   })
 
@@ -28,5 +29,5 @@ export const selectFormattedTokenBalance = (tokenKey: TokenKey) =>
   createSelector([selectTokenBalance(tokenKey)], (balance): string => {
     const balanceAsBigInt = BigInt(balance)
     const balanceAsNumber = bigIntToNumber(balanceAsBigInt)
-    return `${balanceAsNumber}${tokensConfig[tokenKey].name}`
+    return `${balanceAsNumber}${tokensConfig[tokenKey]?.name}`
   })

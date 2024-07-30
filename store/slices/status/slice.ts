@@ -1,9 +1,6 @@
 import { RootState } from '@/store'
-import { createSelector, createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { selectBalancesLoading } from '../balance'
-import { selectBridgesLoading } from '../bridges'
-import { selectPriceLoading } from '../price'
 import { truncateTxHash } from '@/utils/string'
+import { createSelector, createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 interface StatusState {
   error: {
@@ -60,12 +57,6 @@ const statusSlice = createSlice({
     },
   },
 })
-
-// A selector to get global loading state
-export const selectLoading = createSelector(
-  [selectBalancesLoading, selectPriceLoading, selectBridgesLoading],
-  (balancesLoading, priceLoading, bridgesLoading) => balancesLoading || priceLoading || bridgesLoading
-)
 
 export const {
   setErrorMessage,

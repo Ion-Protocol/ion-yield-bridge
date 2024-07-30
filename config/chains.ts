@@ -1,20 +1,95 @@
-import { Chain } from '@/types/Chain'
+import { Bridge } from '@/types/Bridge'
 import { TokenKey } from './token'
-import { MarketKey } from '@/types/Market'
 
 export enum ChainKey {
-  ETHEREUM = 'ethereum',
-  TENDERLY = 'tenderly',
+  MAINNET = 'mainnet',
+  SEPOLIA = 'sepolia',
+  TENDERLY_MAINNET = 'tenderly_mainnet',
 }
 
-export const chainsConfig: Record<ChainKey, Chain> = {
+// Use kebab-case (with hyphens) for the values.
+// These values are used to define the url paths.
+export enum BridgeKey {
+  ETHEREUM = 'ethereum',
+  SEI = 'sei',
+  MORPH = 'morph',
+  OPTIMISM = 'optimism',
+}
+
+export enum MarketKey {
+  WEETH_WSTETH = 'weETH_wstETH',
+  RSETH_WSTETH = 'rsETH_wstETH',
+  RSWETH_WSTETH = 'rswETH_wstETH',
+  EZETH_WETH = 'ezETH_WETH',
+}
+
+export interface MarketContracts {
+  reserveOracle: `0x${string}`
+  ionPool: `0x${string}`
+}
+
+export interface Market {
+  id: number
+  key: MarketKey
+  contracts: MarketContracts
+  collateralAsset: TokenKey
+  lenderAsset: TokenKey
+}
+
+export interface ChainConfig {
+  id: number
+  name: string
+  markets: Partial<Record<MarketKey, Market>>
+  bridges: Partial<Record<BridgeKey, Bridge>>
+  contracts: Record<string, `0x${string}`>
+}
+
+export const chainsConfig: Record<ChainKey, ChainConfig> = {
   ////////////////////////////////////////
-  // Ethereum
+  // Mainnet
   ////////////////////////////////////////
-  [ChainKey.ETHEREUM]: {
+
+  [ChainKey.MAINNET]: {
     id: 1,
     name: 'Ethereum',
-    availableTokens: [TokenKey.WETH, TokenKey.WSTETH],
+    contracts: {
+      chainlink: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419',
+      ionLens: '0xe89AF12af000C4f76a57A3aD16ef8277a727DC81',
+    },
+    bridges: {
+      [BridgeKey.MORPH]: {
+        name: 'Morph',
+        comingSoon: false,
+        contracts: {
+          teller: '0x0000000000F45660Bb8Fc3F86da8854c63cF49e3',
+          accountant: '0x00000000004F96C07B83e86600D86F9479bB43fa',
+          boringVault: '0x0000000000E7Ab44153eEBEF2343ba5289F65dAC',
+        },
+        sourceBridges: [BridgeKey.ETHEREUM],
+        destinationBridges: [BridgeKey.ETHEREUM, BridgeKey.MORPH],
+        sourceTokens: [TokenKey.WETH, TokenKey.WSTETH],
+        destinationTokens: [TokenKey.MRPH],
+        layerZeroChainSelector: 0,
+        description:
+          'Morph provides the tools and infrastructure necessary for developers to create decentralized applications (DApps) that are not only powerful but also intuitive and easy to use for the everyday consumer.',
+      },
+      [BridgeKey.SEI]: {
+        name: 'Sei',
+        comingSoon: true,
+        contracts: {
+          teller: '0x0000000000F45660Bb8Fc3F86da8854c63cF49e3',
+          accountant: '0x00000000004F96C07B83e86600D86F9479bB43fa',
+          boringVault: '0x0000000000E7Ab44153eEBEF2343ba5289F65dAC',
+        },
+        sourceBridges: [BridgeKey.ETHEREUM],
+        destinationBridges: [BridgeKey.ETHEREUM, BridgeKey.SEI],
+        sourceTokens: [TokenKey.WETH, TokenKey.WSTETH],
+        destinationTokens: [TokenKey.SEI],
+        layerZeroChainSelector: 0,
+        description:
+          'Sei is the first parallelized EVM. This allows Sei to get the best of Solana and Ethereum - a hyper optimized execution layer that benefits from the tooling and mindshare around the EVM.',
+      },
+    },
     markets: {
       [MarketKey.WEETH_WSTETH]: {
         id: 0,
@@ -60,12 +135,50 @@ export const chainsConfig: Record<ChainKey, Chain> = {
   },
 
   ////////////////////////////////////////
-  // Tenderly
+  // Tenderly Mainnet
   ////////////////////////////////////////
-  [ChainKey.TENDERLY]: {
+
+  [ChainKey.TENDERLY_MAINNET]: {
     id: 99099127,
     name: 'Ion Testnet',
-    availableTokens: [TokenKey.WETH, TokenKey.WSTETH],
+    contracts: {
+      chainlink: '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419',
+      ionLens: '0xe89AF12af000C4f76a57A3aD16ef8277a727DC81',
+    },
+    bridges: {
+      [BridgeKey.MORPH]: {
+        name: 'Morph',
+        comingSoon: false,
+        contracts: {
+          teller: '0x0000000000F45660Bb8Fc3F86da8854c63cF49e3',
+          accountant: '0x00000000004F96C07B83e86600D86F9479bB43fa',
+          boringVault: '0x0000000000E7Ab44153eEBEF2343ba5289F65dAC',
+        },
+        sourceBridges: [BridgeKey.ETHEREUM],
+        destinationBridges: [BridgeKey.ETHEREUM, BridgeKey.MORPH],
+        sourceTokens: [TokenKey.WETH, TokenKey.WSTETH],
+        destinationTokens: [TokenKey.MRPH],
+        layerZeroChainSelector: 0,
+        description:
+          'Morph provides the tools and infrastructure necessary for developers to create decentralized applications (DApps) that are not only powerful but also intuitive and easy to use for the everyday consumer.',
+      },
+      [BridgeKey.SEI]: {
+        name: 'Sei',
+        comingSoon: true,
+        contracts: {
+          teller: '0x0000000000F45660Bb8Fc3F86da8854c63cF49e3',
+          accountant: '0x00000000004F96C07B83e86600D86F9479bB43fa',
+          boringVault: '0x0000000000E7Ab44153eEBEF2343ba5289F65dAC',
+        },
+        sourceBridges: [BridgeKey.ETHEREUM],
+        destinationBridges: [BridgeKey.ETHEREUM, BridgeKey.SEI],
+        sourceTokens: [TokenKey.WETH, TokenKey.WSTETH],
+        destinationTokens: [TokenKey.SEI],
+        layerZeroChainSelector: 0,
+        description:
+          'Sei is the first parallelized EVM. This allows Sei to get the best of Solana and Ethereum - a hyper optimized execution layer that benefits from the tooling and mindshare around the EVM.',
+      },
+    },
     markets: {
       [MarketKey.WEETH_WSTETH]: {
         id: 0,
@@ -73,8 +186,8 @@ export const chainsConfig: Record<ChainKey, Chain> = {
         collateralAsset: TokenKey.WEETH,
         lenderAsset: TokenKey.WSTETH,
         contracts: {
-          reserveOracle: '0x78C3ac7F84F5101422DCd89fB387bD0DeEf8d662',
           ionPool: '0x0000000000eaEbd95dAfcA37A39fd09745739b78',
+          reserveOracle: '0x78C3ac7F84F5101422DCd89fB387bD0DeEf8d662',
         },
       },
       [MarketKey.RSETH_WSTETH]: {
@@ -83,8 +196,8 @@ export const chainsConfig: Record<ChainKey, Chain> = {
         collateralAsset: TokenKey.RSETH,
         lenderAsset: TokenKey.WSTETH,
         contracts: {
-          reserveOracle: '0x095FE689AFC3e57bb32Bc06Fd45aD2382f47e2fd',
           ionPool: '0x0000000000E33e35EE6052fae87bfcFac61b1da9',
+          reserveOracle: '0x095FE689AFC3e57bb32Bc06Fd45aD2382f47e2fd',
         },
       },
       [MarketKey.RSWETH_WSTETH]: {
@@ -108,5 +221,36 @@ export const chainsConfig: Record<ChainKey, Chain> = {
         },
       },
     },
+  },
+
+  ////////////////////////////////////////
+  // Sepolia
+  ////////////////////////////////////////
+
+  [ChainKey.SEPOLIA]: {
+    id: 11155111,
+    name: 'Sepolia',
+    contracts: {
+      chainlink: '0xceA6Aa74E6A86a7f85B571Ce1C34f1A60B77CD29',
+      ionLens: '0x0',
+    },
+    bridges: {
+      [BridgeKey.OPTIMISM]: {
+        name: 'Optimism',
+        layerZeroChainSelector: 40232,
+        comingSoon: false,
+        contracts: {
+          teller: '0xffea4fb47ac7fa102648770304605920ce35660c',
+          accountant: '0x28bdf277598d9f4dc0df2d16764764695cb3bbec',
+          boringVault: '0x262031e2f50b8faea37b09445ad941e6256f1919',
+        },
+        sourceBridges: [BridgeKey.ETHEREUM],
+        destinationBridges: [BridgeKey.ETHEREUM, BridgeKey.OPTIMISM],
+        sourceTokens: [TokenKey.WETH, TokenKey.WSTETH],
+        destinationTokens: [TokenKey.WETH, TokenKey.WSTETH],
+        description: 'TBD',
+      },
+    },
+    markets: {},
   },
 }

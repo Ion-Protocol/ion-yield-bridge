@@ -1,10 +1,9 @@
-import { chainsConfig } from '@/config/chains'
 import { tokensConfig } from '@/config/token'
 import { RootState } from '@/store'
 import { utils } from '@/utils'
 import { numToPercent } from '@/utils/number'
 import { createSelector } from '@reduxjs/toolkit'
-import { selectChain } from '../chain'
+import { selectChainKey } from '../chain'
 import { selectCurrency } from '../currency'
 import { selectApys, selectUtilizationRates } from '../globalSelectors'
 import { selectPrice } from '../price'
@@ -13,6 +12,7 @@ import { selectIonLensLoading } from '../ionLens'
 import { selectAssetApysLoading } from '../assetApys'
 import { MarketKey } from '@/types/Market'
 import { ionAppV2UrlBase } from '@/config/constants'
+import { selectChainConfig } from '../bridges'
 
 export const selectPositions = (state: RootState) => state.positions.data
 export const selectPositionsLoading = (state: RootState) => state.positions.loading
@@ -23,10 +23,12 @@ export const selectPositionsLoading = (state: RootState) => state.positions.load
  *
  * @returns A record of market keys and their corresponding URLs.
  */
-export const selectMarketUrls = createSelector([selectChain], (chainKey) => {
+export const selectMarketUrls = createSelector([selectChainKey, selectChainConfig], (chainKey, chainConfig) => {
   const marketUrlMap: Record<MarketKey, string> = {} as Record<MarketKey, string>
 
-  Object.values(chainsConfig[chainKey].markets).forEach((market) => {
+  if (!chainConfig) return null
+
+  Object.values(chainConfig.markets).forEach((market) => {
     marketUrlMap[market.key] =
       `${ionAppV2UrlBase}/lend?collateralAsset=${market.collateralAsset}&lenderAsset=${market.lenderAsset}&marketId=${market.id}`
   })
@@ -46,15 +48,22 @@ export const selectMarketUrls = createSelector([selectChain], (chainKey) => {
  * @returns {Array} The formatted positions table data.
  */
 export const selectPositionsTableData = createSelector(
-  [selectPositions, selectChain, selectPrice, selectCurrency, selectUtilizationRates, selectApys, selectMarketUrls],
-  (positions, chainKey, price, currency, utilizationRates, apys, marketUrls) => {
-    const markets = Object.values(chainsConfig[chainKey].markets)
+  [
+    selectChainConfig,
+    selectPositions,
+    selectPrice,
+    selectCurrency,
+    selectUtilizationRates,
+    selectApys,
+    selectMarketUrls,
+  ],
+  (chainConfig, positions, price, currency, utilizationRates, apys, marketUrls) => {
+    if (!chainConfig) return null
+    const markets = Object.values(chainConfig.markets)
 
     const formattedPositions = positions.map((position) => {
       const market = markets.find((m) => m.id === position.marketId)
-      if (!market) {
-        throw new Error(`Market not found for marketId ${position.marketId}`)
-      }
+      if (!market) return null
 
       const lenderAsset = tokensConfig[market.lenderAsset].name
       const collateralAsset = tokensConfig[market.collateralAsset].name
@@ -62,10 +71,10 @@ export const selectPositionsTableData = createSelector(
       const utilizationRate = utilizationRates[market.key]
 
       const formattedMarket = `${lenderAsset} | ${collateralAsset}`
-      const formattedTotalSupplied = utils.currencySwitch(currency, position.totalSupplied, price)
+      const formattedTotalSupplied = utils.currencySwitch(currency, position.totalSupplied, price) || '-'
       const formattedApy = numToPercent(apy, { fractionDigits: 1 })
       const formattedUtilizationRate = numToPercent(utilizationRate, { fractionDigits: 1 })
-      const marketUrl = marketUrls[market.key]
+      const marketUrl = marketUrls?.[market.key]
 
       return {
         ...position,

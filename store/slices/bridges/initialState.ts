@@ -1,9 +1,8 @@
-import { BridgeKey, bridgesConfig } from '@/config/bridges'
-import { ChainKey } from '@/config/chains'
+import { BridgeKey, ChainKey } from '@/config/chains'
 import { TokenKey } from '@/config/token'
 
 export interface AsyncMetric {
-  value: string | number
+  value: string | number | null
   loading: boolean
 }
 
@@ -20,39 +19,44 @@ export interface BridgeData {
 export type BridgesState = {
   data: { [bridgeKey in BridgeKey]: BridgeData }
   overallLoading: boolean
-  sourceChain: ChainKey
+  tvlLoading: boolean
+  apyLoading: boolean
+  previewFeeLoading: boolean
+  previewFee: string | null
+  sourceBridge: BridgeKey | null
   inputError: string | null
-  destinationChain: ChainKey
+  destinationBridge: BridgeKey | null
   deposit: {
     pending: boolean
     error: string | null
   }
 }
 
-// Initialize the data object by iterating over all the bridge keys and setting the initial state
-const initializeData = (): { [key in BridgeKey]: BridgeData } => {
-  const data: { [key in BridgeKey]: BridgeData } = {} as any
-
-  Object.values(BridgeKey).forEach((key) => {
-    data[key] = {
-      tvl: { value: BigInt(0).toString(), loading: false },
-      apy: { value: BigInt(0).toString(), loading: false },
-      rate: { value: BigInt(0).toString(), loading: false },
-      error: null,
-      from: '',
-      selectedFromToken: bridgesConfig[key].sourceTokens[0],
-      selectedToToken: bridgesConfig[key].destinationTokens[0],
-    }
-  })
-
-  return data
+const initialBridgeData: BridgeData = {
+  tvl: { value: 0, loading: false },
+  apy: { value: null, loading: false },
+  rate: { value: 0, loading: false },
+  error: null,
+  from: '',
+  selectedFromToken: null,
+  selectedToToken: null,
 }
 
 export const initialState: BridgesState = {
-  data: initializeData(),
-  overallLoading: true,
-  sourceChain: ChainKey.ETHEREUM,
-  destinationChain: ChainKey.ETHEREUM,
+  data: Object.values(BridgeKey).reduce(
+    (acc, key) => {
+      acc[key as BridgeKey] = { ...initialBridgeData }
+      return acc
+    },
+    {} as { [bridgeKey in BridgeKey]: BridgeData }
+  ),
+  overallLoading: false,
+  tvlLoading: false,
+  apyLoading: false,
+  previewFeeLoading: false,
+  previewFee: null,
+  sourceBridge: BridgeKey.ETHEREUM,
+  destinationBridge: BridgeKey.ETHEREUM,
   inputError: null,
   deposit: {
     pending: false,

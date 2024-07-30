@@ -3,12 +3,15 @@ import AccountantWithRateProviders from '@/contracts/AccountantWithRateProviders
 import { Abi } from 'viem'
 import { readContract } from 'wagmi/actions'
 
-export async function getRate(contractAddress: `0x${string}`): Promise<bigint> {
+export async function getRateInQuoteSafe(
+  { quote }: { quote: `0x${string}` },
+  { contractAddress }: { contractAddress: `0x${string}` }
+): Promise<bigint> {
   const rate = await readContract(wagmiConfig, {
     abi: AccountantWithRateProviders.abi as Abi,
     address: contractAddress,
-    functionName: 'getRate',
-    args: [],
+    functionName: 'getRateInQuoteSafe',
+    args: [quote],
   })
 
   return rate as bigint

@@ -1,19 +1,22 @@
 import { calculateMinimumMint } from '@/api/utils/calculateMinimumMint'
 import { wagmiConfig } from '@/config/wagmi'
-import TellerWithMultiAssetSupport from '@/contracts/TellerWithMultiAssetSupport.json'
+import CrossChainTellerBaseAbi from '@/contracts/CrossChainTellerBase.json'
 import { Abi } from 'viem'
 import { simulateContract, waitForTransactionReceipt, writeContract } from 'wagmi/actions'
 import { getRateInQuote } from '../Accountant/getRateInQuote'
 import { allowance } from '../erc20/allowance'
 import { approve } from '../erc20/approve'
+import { CrossChainTellerBase } from './previewFee'
 
-export async function deposit(
+export async function depositAndBridge(
   {
     depositAsset,
     depositAmount,
+    bridgeData,
   }: {
     depositAsset: `0x${string}`
     depositAmount: bigint
+    bridgeData: CrossChainTellerBase.BridgeData
   },
   {
     userAddress,
@@ -27,7 +30,6 @@ export async function deposit(
     accountantAddress: `0x${string}`
   }
 ) {
-  console.log('deposit!')
   ////////////////////////////////
   // Check Allowance
   ////////////////////////////////
@@ -58,20 +60,20 @@ export async function deposit(
   // Simulate
   ////////////////////////////////
   await simulateContract(wagmiConfig, {
-    abi: TellerWithMultiAssetSupport.abi as Abi,
+    abi: CrossChainTellerBaseAbi.abi as Abi,
     address: tellerContractAddress,
-    functionName: 'deposit',
-    args: [depositAsset, depositAmount, minimumMint],
+    functionName: 'depositAndBridge',
+    args: [depositAsset, depositAmount, minimumMint, bridgeData],
   })
 
   ////////////////////////////////
   // Write
   ////////////////////////////////
   const hash = await writeContract(wagmiConfig, {
-    abi: TellerWithMultiAssetSupport.abi as Abi,
+    abi: CrossChainTellerBaseAbi.abi as Abi,
     address: tellerContractAddress,
-    functionName: 'deposit',
-    args: [depositAsset, depositAmount, minimumMint],
+    functionName: 'depositAndBridge',
+    args: [depositAsset, depositAmount, minimumMint, bridgeData],
   })
 
   ////////////////////////////////

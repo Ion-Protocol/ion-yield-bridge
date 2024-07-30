@@ -1,7 +1,7 @@
 import { ActionCreatorWithPayload, PayloadAction, createSlice } from '@reduxjs/toolkit'
 import { extraReducers } from './extraReducers'
 import { initialState } from './initialState'
-import { BridgeKey } from '@/config/bridges'
+import { BridgeKey } from '@/config/chains'
 import { TokenKey } from '@/config/token'
 
 const bridgesSlice = createSlice({
@@ -9,10 +9,10 @@ const bridgesSlice = createSlice({
   initialState,
   reducers: {
     setSourceChain: (state, action) => {
-      state.sourceChain = action.payload
+      state.sourceBridge = action.payload
     },
     setDestinationChain: (state, action) => {
-      state.destinationChain = action.payload
+      state.destinationBridge = action.payload
     },
     setInputError: (state, action) => {
       state.inputError = action.payload
@@ -20,11 +20,17 @@ const bridgesSlice = createSlice({
     clearInputError: (state) => {
       state.inputError = null
     },
-    setSelectedFromToken: (state, action: PayloadAction<{ bridgeKey: BridgeKey; tokenKey: TokenKey }>) => {
-      state.data[action.payload.bridgeKey].selectedFromToken = action.payload.tokenKey
+    setSelectedFromToken: (state, action: PayloadAction<{ bridgeKey: BridgeKey | null; tokenKey: TokenKey }>) => {
+      const { bridgeKey } = action.payload
+      if (!bridgeKey) return
+      state.data[bridgeKey].selectedFromToken = action.payload.tokenKey
     },
-    setSelectedToToken: (state, action: PayloadAction<{ bridgeKey: BridgeKey; tokenKey: TokenKey }>) => {
+    setSelectedToToken: (state, action: PayloadAction<{ bridgeKey: BridgeKey; tokenKey: TokenKey | null }>) => {
       state.data[action.payload.bridgeKey].selectedToToken = action.payload.tokenKey
+    },
+    setBridgeFromDebounceComplete: () => {}, // only used as an action to trigger a side effect
+    clearPreviewFee: (state) => {
+      state.previewFee = null
     },
   },
   extraReducers,
@@ -37,6 +43,8 @@ export const {
   clearInputError,
   setSelectedFromToken,
   setSelectedToToken,
+  setBridgeFromDebounceComplete,
+  clearPreviewFee,
 } = bridgesSlice.actions
 export const bridgesReducer = bridgesSlice.reducer
 

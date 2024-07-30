@@ -1,21 +1,27 @@
 import { configureStore } from '@reduxjs/toolkit'
+import { debounceMiddleware } from './middleware/debounceMiddleware'
 import { accountReducer } from './slices/account/slice'
+import { assetApysReducer } from './slices/assetApys'
+import { assetApysApi } from './slices/assetApys/api'
 import { balancesReducer } from './slices/balance'
 import { bridgesReducer } from './slices/bridges'
-import { priceReducer } from './slices/price'
+import { chainReducer } from './slices/chain/slice'
+import { currencyReducer } from './slices/currency/slice'
+import { ionLensReducer } from './slices/ionLens'
+import { ionPoolReducer } from './slices/ionPool'
 import { netApyReducer } from './slices/netApy'
 import { netApyApi } from './slices/netApy/api'
 import { positionsReducer } from './slices/positions'
 import { positionsApi } from './slices/positions/api'
-import { assetApysReducer } from './slices/assetApys'
-import { assetApysApi } from './slices/assetApys/api'
-import { ionPoolReducer } from './slices/ionPool'
-import { ionLensReducer } from './slices/ionLens'
-import { chainReducer } from './slices/chain/slice'
-import { currencyReducer } from './slices/currency/slice'
+import { priceReducer } from './slices/price'
 import { routerReducer } from './slices/router/slice'
 import { statusReducer } from './slices/status/slice'
 import { UIReducer } from './slices/ui/slice'
+import { previewFeeMiddleware } from './middleware/effects/previewFeeMiddleware'
+import { chainChangeMiddleware } from './middleware/effects/chainChangeMiddleware'
+
+const regularMiddlewares = [netApyApi.middleware, positionsApi.middleware, assetApysApi.middleware, debounceMiddleware]
+const sideEffectMiddlewares = [previewFeeMiddleware, chainChangeMiddleware]
 
 export const store = configureStore({
   reducer: {
@@ -39,8 +45,7 @@ export const store = configureStore({
     [positionsApi.reducerPath]: positionsApi.reducer,
     [assetApysApi.reducerPath]: assetApysApi.reducer,
   },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(netApyApi.middleware, positionsApi.middleware, assetApysApi.middleware),
+  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(regularMiddlewares).concat(sideEffectMiddlewares),
 })
 
 export type RootState = ReturnType<typeof store.getState>

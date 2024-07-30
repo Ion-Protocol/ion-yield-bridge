@@ -4,12 +4,21 @@ import { Flex, Text } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import { YieldBridgeItemConnector } from './connector'
 
-function YieldBridgeItem({ bridge, disabled, loading }: YieldBridgeItemConnector.Props) {
+function YieldBridgeItem({
+  tvl,
+  apy,
+  name,
+  comingSoon,
+  bridgeKey,
+  description,
+  disabled,
+  loading,
+}: YieldBridgeItemConnector.Props) {
   const router = useRouter()
 
   function handleClick() {
     if (!disabled) {
-      router.push(`/bridge/${bridge.key}`)
+      router.push(`/bridge/${bridgeKey}`)
     }
   }
 
@@ -30,14 +39,14 @@ function YieldBridgeItem({ bridge, disabled, loading }: YieldBridgeItemConnector
       <Flex w="225px" py={6} pl={6} direction="column" justify="center">
         <Flex align="center" gap={3}>
           {/* Bridge Name */}
-          <Text variant="header3">{bridge.name}</Text>
+          <Text variant="header3">{name}</Text>
 
           {/* Coming soon marker */}
-          {bridge.comingSoon && <Text color="secondaryText">Coming soon</Text>}
+          {comingSoon && <Text color="secondaryText">Coming soon</Text>}
         </Flex>
 
         {/* Bridge Description */}
-        <Text>{bridge.description}</Text>
+        <Text>{description}</Text>
 
         {/* TVL & APY */}
         <Flex mt={3} gap={6}>
@@ -45,7 +54,7 @@ function YieldBridgeItem({ bridge, disabled, loading }: YieldBridgeItemConnector
           <Flex direction="column">
             <Text>TVL</Text>
             <IonSkeleton isLoaded={!loading} w="100px">
-              <Text variant="large">{bridge.comingSoon ? '-' : bridge.tvl.formatted}</Text>
+              <Text variant="large">{comingSoon ? '-' : tvl}</Text>
             </IonSkeleton>
           </Flex>
 
@@ -53,7 +62,7 @@ function YieldBridgeItem({ bridge, disabled, loading }: YieldBridgeItemConnector
           <Flex direction="column">
             <Text>APY</Text>
             <IonSkeleton isLoaded={!loading}>
-              <Text variant="large">{bridge.comingSoon ? '-' : bridge.apy.formatted}</Text>
+              <Text variant="large">{comingSoon ? '-' : apy}</Text>
             </IonSkeleton>
           </Flex>
         </Flex>
@@ -61,7 +70,7 @@ function YieldBridgeItem({ bridge, disabled, loading }: YieldBridgeItemConnector
 
       {/* Logo Section */}
       <Flex flex={1} position="relative">
-        <BridgeIcon bridgeKey={bridge.key} fontSize="160px" position="absolute" bottom="-20px" right="-40px" />
+        <BridgeIcon bridgeKey={bridgeKey} fontSize="160px" position="absolute" bottom="-20px" right="-40px" />
       </Flex>
     </Flex>
   )

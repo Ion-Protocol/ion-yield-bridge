@@ -1,22 +1,114 @@
-import { BridgeKey, bridgesConfig } from '@/config/bridges'
-import { TokenKey } from '@/config/token'
-import { uiConfig } from '@/config/ui'
+import { BridgeKey, ChainKey, chainsConfig } from '@/config/chains'
+import { TokenKey, tokensConfig } from '@/config/token'
 import { RootState } from '@/store'
 import { selectCurrency } from '@/store/slices/currency'
-import { BridgeUI } from '@/types/Bridge'
+import { Bridge } from '@/types/Bridge'
 import { utils } from '@/utils'
 import { numToPercent } from '@/utils/number'
 import { createSelector } from 'reselect'
+import { selectChainKey } from '../chain'
 import { selectPrice } from '../price'
-import { BridgesState } from './initialState'
+import { selectBridgeKey } from '../router'
+import { BridgeData } from './initialState'
+import { Address } from 'viem'
+import { WAD } from '@/utils/bigint'
 
-export const selectBridgesState = (state: RootState): BridgesState => state.bridges
+export const selectBridgesState = (state: RootState) => state.bridges
 export const selectInputError = createSelector([selectBridgesState], (bridgesState) => bridgesState.inputError)
-export const selectBridgesLoading = createSelector([selectBridgesState], (bridgesState) => bridgesState.overallLoading)
-export const selectBridgeSourceChain = createSelector([selectBridgesState], (bridgesState) => bridgesState.sourceChain)
-export const selectBridgeDestinationChain = createSelector(
+export const selectBridgesLoading = createSelector(
   [selectBridgesState],
-  (bridgesState) => bridgesState.destinationChain
+  (bridgesState): boolean => bridgesState.overallLoading
+)
+export const selectSourceBridge = createSelector([selectBridgesState], (bridgesState) => bridgesState.sourceBridge)
+export const selectDestinationBridge = createSelector(
+  [selectBridgesState],
+  (bridgesState) => bridgesState.destinationBridge
+)
+
+export const selectTvlLoading = (state: RootState) => state.bridges.tvlLoading
+export const selectApyLoading = (state: RootState) => state.bridges.apyLoading
+export const selectPreviewFeeLoading = (state: RootState) => state.bridges.previewFeeLoading
+
+export const selectChainConfig = createSelector([selectChainKey], (chainKey) => {
+  if (!chainKey) return null
+  return chainsConfig[chainKey]
+})
+
+export const selectMarketsConfig = createSelector([selectChainConfig], (chainConfig) => {
+  return chainConfig?.markets
+})
+
+export const selectBridgeConfig = createSelector(
+  [selectChainConfig, selectBridgeKey],
+  (chainConfig, bridgeKey): (Bridge & { key: BridgeKey }) | null => {
+    if (!bridgeKey || !chainConfig) return null
+    const bridgeConfig = chainConfig.bridges[bridgeKey] as Bridge
+    return { ...bridgeConfig, key: bridgeKey }
+  }
+)
+
+export const selectBridgeConfigByKey = (bridgeKey: BridgeKey) => {
+  return createSelector([selectChainConfig], (chainConfig) => {
+    if (!chainConfig) return null
+    const bridgeConfig = chainConfig.bridges[bridgeKey]
+    return { ...bridgeConfig, key: bridgeKey }
+  })
+}
+
+export const selectBridgesAsArray = createSelector(
+  [selectChainConfig],
+  (chainConfig): (Bridge & { key: BridgeKey })[] => {
+    if (!chainConfig) return []
+    return Object.keys(chainConfig.bridges).map((key) => ({
+      key: key as BridgeKey,
+      ...(chainConfig.bridges[key as BridgeKey] as Bridge),
+    }))
+  }
+)
+
+export const selectSourceBridges = createSelector(
+  [selectBridgeConfig, selectChainConfig],
+  (bridgeConfig, chainConfig) => {
+    if (!bridgeConfig || !chainConfig || !bridgeConfig.sourceBridges) return []
+    return bridgeConfig.sourceBridges.map((bridgeKey) => {
+      let name = chainConfig.bridges[bridgeKey]?.name
+      if (bridgeKey === BridgeKey.ETHEREUM) {
+        name = 'Ethereum'
+      }
+      return { key: bridgeKey, name }
+    })
+  }
+)
+
+export const selectDestinationBridges = createSelector(
+  [selectBridgeConfig, selectChainConfig],
+  (bridgeConfig, chainConfig) => {
+    if (!bridgeConfig || !chainConfig || !bridgeConfig.destinationBridges) return []
+    return bridgeConfig.destinationBridges.map((bridgeKey) => {
+      let name = chainConfig.bridges[bridgeKey]?.name
+      if (bridgeKey === BridgeKey.ETHEREUM) {
+        name = 'Ethereum'
+      }
+      return { key: bridgeKey, name }
+    })
+  }
+)
+
+export const selectBridgeKeys = createSelector([selectChainConfig], (chainConfig): BridgeKey[] => {
+  if (!chainConfig) return []
+  return Object.keys(chainConfig.bridges) as BridgeKey[]
+})
+
+export const selectBridgesData = createSelector([selectBridgesState], (bridgesState) => {
+  return bridgesState.data
+})
+
+export const selectBridgeData = createSelector(
+  [selectBridgesData, selectBridgeKey],
+  (bridgesData, bridgeKey): BridgeData | null => {
+    if (!bridgeKey) return null
+    return bridgesData?.[bridgeKey] as BridgeData
+  }
 )
 
 /**
@@ -25,19 +117,29 @@ export const selectBridgeDestinationChain = createSelector(
  * @param key - The key of the bridge.
  * @returns The TVL for the specified bridge key, or `undefined` if not found.
  */
-export const selectBridgeTVLByKey = (key: BridgeKey) =>
-  createSelector([selectBridgesState], (bridgesState): bigint | undefined => {
-    return BigInt(bridgesState.data[key].tvl.value)
+export const selectBridgeTvlByKey = (bridgeKey: BridgeKey) =>
+  createSelector([selectBridgesData], (bridgesData) => {
+    const tvl = bridgesData[bridgeKey].tvl.value
+    if (!tvl) return BigInt(0)
+    return BigInt(tvl)
   })
+
+export const selectActiveBridgeTvl = createSelector([selectBridgesData, selectBridgeKey], (bridgesData, bridgeKey) => {
+  if (!bridgeKey) return BigInt(0)
+  const tvl = bridgesData[bridgeKey].tvl.value
+  if (!tvl) return BigInt(0)
+  return BigInt(tvl)
+})
 
 /**
  * Selects the APY (Annual Percentage Yield) value for a given bridge key.
  * @param key - The key of the bridge.
  * @returns The APY value as a string, or undefined if the bridge key is not found.
  */
-export const selectBridgeAPYByKey = (key: BridgeKey) =>
-  createSelector([selectBridgesState], (bridgesState): number | undefined => {
-    return bridgesState.data[key].apy.value as number
+export const selectBridgeApyKey = (bridgeKey: BridgeKey) =>
+  createSelector([selectBridgesData], (bridgesData): number | null => {
+    if (!bridgesData) return null
+    return bridgesData[bridgeKey].apy.value as number
   })
 
 /**
@@ -45,10 +147,13 @@ export const selectBridgeAPYByKey = (key: BridgeKey) =>
  * @param key - The key of the bridge.
  * @returns The loading state of the bridge.
  */
-export const selectBridgeLoadingByKey = (key: BridgeKey) =>
-  createSelector([selectBridgesState], (bridgesState) => {
-    return bridgesState.data[key].tvl.loading || bridgesState.data[key].apy.loading
-  })
+export const selectBridgeLoadingByKey = createSelector(
+  [selectBridgesData, selectBridgeKey],
+  (bridgesData, bridgeKey): boolean => {
+    if (!bridgesData || !bridgeKey) return false
+    return bridgesData[bridgeKey].tvl.loading || bridgesData[bridgeKey].apy.loading
+  }
+)
 
 /**
  * Selects the formatted total value locked (TVL) for a specific bridge key.
@@ -56,15 +161,19 @@ export const selectBridgeLoadingByKey = (key: BridgeKey) =>
  * @param key - The bridge key.
  * @returns A selector function that returns the formatted TVL.
  */
-export const selectFormattedBridgeTVLByKey = (key: BridgeKey) => {
-  return createSelector([(state: RootState) => state], (state) => {
-    const tvl = selectBridgeTVLByKey(key)(state) || BigInt(0)
-    const price = selectPrice(state)
-    const currency = selectCurrency(state)
+export const selectFormattedBridgeTvlByKey = (bridgeKey: BridgeKey) =>
+  createSelector([selectBridgeTvlByKey(bridgeKey), selectPrice, selectCurrency], (tvl, price, currency) => {
     const formattedTvl = utils.currencySwitch(currency, tvl, price)
-    return formattedTvl
+    return formattedTvl || '-'
   })
-}
+
+export const selectActiveFormattedBridgeTvl = createSelector(
+  [selectActiveBridgeTvl, selectPrice, selectCurrency],
+  (tvl, price, currency) => {
+    const formattedTvl = utils.currencySwitch(currency, tvl, price)
+    return formattedTvl || '-'
+  }
+)
 
 /**
  * Selects the formatted Annual Percentage Yield (APY) for a given bridge key.
@@ -72,64 +181,16 @@ export const selectFormattedBridgeTVLByKey = (key: BridgeKey) => {
  * @param key - The bridge key.
  * @returns The formatted APY as a string.
  */
-export const selectFormattedBridgeAPYByKey = (key: BridgeKey) => {
-  return createSelector([selectBridgeAPYByKey(key)], (apy) => {
-    return numToPercent((apy || 0) * 100)
-  })
-}
-
-/**
- * Selects a bridge by its key and formats the data.
- *
- * @param key - The key of the bridge.
- * @returns The formatted bridge data for the specified key.
- */
-export const selectFormattedBridgeDataByKey = (key: BridgeKey) =>
-  createSelector([(state: RootState) => state], (state) => {
-    const rawTvl = selectBridgeTVLByKey(key)(state)
-    const rawApy = selectBridgeAPYByKey(key)(state) || 0
-    const formattedTvl = selectFormattedBridgeTVLByKey(key as BridgeKey)(state)
-    const formattedApy = selectFormattedBridgeAPYByKey(key as BridgeKey)(state)
-
-    // Trim the description down to a certain length to fit inside the container properly
-    const descriptionLength = uiConfig.pages.dashboard.yieldBridges.descrptionLength
-    const description = bridgesConfig[key as BridgeKey]?.description || ''
-    const trimmedDescription =
-      description.length > descriptionLength ? `${description.slice(0, descriptionLength)}...` : description
-
-    return {
-      ...bridgesConfig[key as BridgeKey],
-      key: key as BridgeKey,
-      tvl: {
-        raw: rawTvl,
-        formatted: formattedTvl,
-      },
-      apy: {
-        raw: rawApy,
-        formatted: formattedApy,
-      },
-      name: bridgesConfig[key as BridgeKey]?.name || '',
-      description: trimmedDescription,
-    } as BridgeUI
+export const selectFromattedBridgeApyKey = (bridgeKey: BridgeKey) =>
+  createSelector([selectBridgeApyKey(bridgeKey)], (apy) => {
+    if (!apy) return '-'
+    return numToPercent(apy * 100)
   })
 
-/**
- * Selects all bridges from the state and formats the data.
- * @param state - The root state of the application.
- * @returns An array of bridges with formatted data.
- */
-export const selectAllBridges = createSelector([(state: RootState) => state], (state) => {
-  const bridges = selectBridgesState(state)
-  return Object.keys(bridges.data).map((key) => selectFormattedBridgeDataByKey(key as BridgeKey)(state))
+export const selectAllBridgeKeys = createSelector([selectChainConfig], (chainConfig): BridgeKey[] => {
+  if (!chainConfig) return []
+  return Object.keys(chainConfig.bridges) as BridgeKey[]
 })
-
-export const selectBridgeByKey = (key: BridgeKey) =>
-  createSelector(
-    (state: RootState) => state,
-    (state) => {
-      return selectFormattedBridgeDataByKey(key)(state)
-    }
-  )
 
 /**
  * Selects the 'from' value of a bridge identified by the given key.
@@ -138,10 +199,10 @@ export const selectBridgeByKey = (key: BridgeKey) =>
  * @param key - The key of the bridge.
  * @returns The 'from' value of the bridge, or undefined if the bridge does not exist.
  */
-export const selectBridgeFrom = (state: RootState, key: BridgeKey): string => {
-  const bridgesState = selectBridgesState(state)
-  return bridgesState.data[key]?.from || ''
-}
+export const selectBridgeFrom = createSelector([selectBridgeData], (bridgeData): string => {
+  if (!bridgeData) return ''
+  return bridgeData.from
+})
 
 /**
  * Retrieves the token of a specific bridge from the state.
@@ -149,10 +210,10 @@ export const selectBridgeFrom = (state: RootState, key: BridgeKey): string => {
  * @param bridgeKey - The key of the bridge.
  * @returns The token of the bridge, or undefined if the bridge does not exist.
  */
-export const selectToTokenKeyForBridge = (state: RootState, bridgeKey: BridgeKey): TokenKey => {
-  const bridgesState = selectBridgesState(state)
-  return bridgesState.data[bridgeKey]?.selectedToToken || bridgesConfig[bridgeKey].destinationTokens[0]
-}
+export const selectToTokenKeyForBridge = createSelector([selectBridgeData], (bridgeData): TokenKey | null => {
+  if (!bridgeData) return null
+  return bridgeData.selectedToToken
+})
 
 /**
  * Selects the `TokenKey` associated with a specific `BridgeKey` from the state.
@@ -163,10 +224,41 @@ export const selectToTokenKeyForBridge = (state: RootState, bridgeKey: BridgeKey
  * @param bridgeKey - The key of the bridge.
  * @returns The selected `TokenKey` or `null`.
  */
-export const selectFromTokenKeyForBridge = (state: RootState, bridgeKey: BridgeKey): TokenKey => {
-  const bridgesState = selectBridgesState(state)
-  return bridgesState.data[bridgeKey]?.selectedFromToken || bridgesConfig[bridgeKey].sourceTokens[0]
-}
+export const selectFromTokenKeyForBridge = createSelector(
+  [selectBridgeData, selectBridgeConfig],
+  (bridgeData, bridgeConfig): TokenKey | null => {
+    if (!bridgeData || !bridgeConfig) return null
+    return bridgeData.selectedFromToken || bridgeConfig?.sourceTokens?.[0]
+  }
+)
+
+/**
+ * Selects the deposit amount as a BigInt.
+ *
+ * @param selectBridgeFrom - The selector function to get the bridge from.
+ * @param depositAmountAsString - The deposit amount as a string.
+ * @returns The deposit amount as a BigInt.
+ */
+export const selectDepositAmountAsBigInt = createSelector([selectBridgeFrom], (depositAmountAsString): bigint => {
+  if (!depositAmountAsString || depositAmountAsString.trim() === '') return BigInt(0)
+  return BigInt(parseFloat(depositAmountAsString) * WAD.number)
+})
+
+/**
+ * Selects the deposit asset address for a given token key and chain key.
+ * Returns the address if both tokenKey and chainKey are valid, otherwise returns null.
+ *
+ * @param {Function} selectFromTokenKeyForBridge - The selector function to retrieve the token key for the bridge.
+ * @param {Function} selectChainKey - The selector function to retrieve the chain key.
+ * @returns {Address | null} - The deposit asset address or null.
+ */
+export const selectDepositAssetAddress = createSelector(
+  [selectFromTokenKeyForBridge, selectChainKey],
+  (tokenKey, chainKey): Address | null => {
+    if (!tokenKey || !chainKey) return null
+    return tokensConfig[tokenKey]?.chains[chainKey]?.address
+  }
+)
 
 /**
  * Retrieves the rate of a specific bridge from the state.
@@ -175,10 +267,10 @@ export const selectFromTokenKeyForBridge = (state: RootState, bridgeKey: BridgeK
  * @param key - The key of the bridge.
  * @returns The rate of the bridge, or undefined if the bridge does not exist.
  */
-export const selectBridgeRate = (state: RootState, key: BridgeKey): string | undefined => {
-  const bridgesState = selectBridgesState(state)
-  return bridgesState.data[key]?.rate.value as string
-}
+export const selectBridgeRate = createSelector([selectBridgeData], (bridgeData): string | number | null => {
+  if (!bridgeData) return null
+  return bridgeData.rate.value
+})
 
 export const selectDepositPending = createSelector([(state: RootState) => state], (state) => {
   const bridges = selectBridgesState(state)
@@ -189,3 +281,17 @@ export const selectDepositError = createSelector([(state: RootState) => state], 
   const bridges = selectBridgesState(state)
   return bridges.deposit.error
 })
+
+export const selectPreviewFee = (state: RootState): string | null => state.bridges.previewFee
+export const selectPreviewFeeAsBigInt = createSelector([selectPreviewFee], (previewFee): bigint | null => {
+  return previewFee ? BigInt(previewFee) : null
+})
+
+export const selectFormattedPreviewFee = createSelector(
+  [selectPreviewFeeAsBigInt, selectPrice, selectCurrency],
+  (previewFee, price, currency): string => {
+    if (!previewFee) return '-'
+    const formattedPreviewFee = utils.currencySwitch(currency, previewFee, price, { usdDigits: 2, ethDigits: 4 })
+    return formattedPreviewFee || '-'
+  }
+)
