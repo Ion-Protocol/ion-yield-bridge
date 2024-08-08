@@ -1,8 +1,8 @@
 import { ConnectAwareButton } from '@/components/shared/ConnectAwareButton'
 import { SubmitConnector } from './connector'
 
-function Submit({ onSubmit, loading, disabled }: SubmitConnector.Props) {
-  return (
+function Submit({ onSubmit, inputError, loading, disabled }: SubmitConnector.Props) {
+  return inputError ? null : (
     <ConnectAwareButton
       h="fit-content"
       p={2}
@@ -12,7 +12,7 @@ function Submit({ onSubmit, loading, disabled }: SubmitConnector.Props) {
       _hover={disabled || loading ? {} : undefined}
       _active={disabled || loading ? {} : undefined}
     >
-      Submit
+      {inputError || 'Submit'}
     </ConnectAwareButton>
   )
 }
